@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagramas Manuscritos - Sistema de Biblioteca</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @page { size: A4; margin: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f0f0f0;
+            color: #202B36;
+            line-height: 1.6;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 8mm auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            padding: 15mm 18mm;
+            position: relative;
+            page-break-after: always;
+        }
+        .page:last-child { page-break-after: auto; }
+        @media print {
+            body { background: white; }
+            .page { margin: 0; box-shadow: none; page-break-after: always; }
+            .no-print { display: none !important; }
+            @page { margin: 0; }
+        }
+        header.page-header {
+            text-align: center;
+            margin-bottom: 6mm;
+            padding-bottom: 3mm;
+            border-bottom: 1.5px solid #E0E6ED;
+        }
+        header.page-header h1 {
+            font-size: 13pt;
+            font-weight: 600;
+            color: #17324D;
+            margin-bottom: 2mm;
+        }
+        header.page-header .subtitle {
+            font-size: 8.5pt;
+            color: #566575;
+        }
+        header.page-header .name-line {
+            margin-top: 3mm;
+            font-size: 8.5pt;
+            color: #566575;
+        }
+        .name-line input {
+            border: none;
+            border-bottom: 1px solid #C8D3DD;
+            width: 120mm;
+            padding: 1px 3px;
+            font-family: inherit;
+            font-size: 8.5pt;
+            color: #202B36;
+        }
+        .page-badge {
+            display: inline-block;
+            background: #2F6B9A;
+            color: white;
+            padding: 1.5px 6px;
+            border-radius: 2px;
+            font-size: 6.5pt;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 3mm;
+        }
+        /* UML Diagram */
+        .uml-diagram {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 6.5pt;
+            line-height: 1.45;
+            background: #FAFBFC;
+            border: 1px solid #E0E6ED;
+            border-radius: 4px;
+            padding: 4mm;
+            overflow-x: auto;
+            white-space: pre;
+            color: #202B36;
+        }
+        /* Flow Steps */
+        .flow-container { display: flex; flex-direction: column; gap: 2.5mm; }
+        .flow-step {
+            background: white;
+            border: 1px solid #E0E6ED;
+            border-radius: 4px;
+            padding: 2.5mm 3.5mm;
+            position: relative;
+        }
+        .flow-step::before {
+            content: '';
+            position: absolute;
+            left: 9mm;
+            top: -1.5mm;
+            bottom: -1.5mm;
+            width: 1.5px;
+            background: repeating-linear-gradient(180deg, #2F6B9A 0 3px, transparent 3px 6px);
+        }
+        .flow-step:first-child::before { top: 2.5mm; }
+        .flow-step:last-child::before { bottom: 2.5mm; }
+        .flow-step-header {
+            display: flex; align-items: center; gap: 2.5mm;
+            margin-bottom: 1.5mm;
+        }
+        .step-number {
+            background: #2F6B9A; color: white;
+            width: 5mm; height: 5mm;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 7pt; flex-shrink: 0;
+        }
+        .step-title { font-weight: 600; color: #17324D; font-size: 8pt; }
+        .step-tag {
+            padding: 1px 3px; border-radius: 2px; font-size: 5pt;
+            font-weight: 600; text-transform: uppercase;
+        }
+        .tag-pure { background: #EAF5EF; color: #32734A; }
+        .tag-impure { background: #FDE0E0; color: #C62828; }
+        .tag-data { background: #F1F4F7; color: #566575; }
+        .step-field {
+            margin: 1mm 0 1mm 13mm;
+            font-size: 6pt;
+        }
+        .step-field-label { font-weight: 600; color: #566575; margin-right: 1.5mm; }
+        .step-field-value { color: #202B36; font-family: 'JetBrains Mono', monospace; font-size: 6pt; }
+        /* Parallel Branches */
+        .parallel-branches { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-top: 2.5mm; }
+        .branch-card { background: white; border: 1px solid #E0E6ED; border-radius: 4px; padding: 2.5mm; }
+        .branch-card-a { border-top: 2px solid #2F6B9A; }
+        .branch-card-b { border-top: 2px solid #32734A; }
+        .branch-header { font-weight: 600; margin-bottom: 2mm; padding-bottom: 1.5mm; border-bottom: 1px solid #E0E6ED; font-size: 7pt; }
+        .branch-header-a { color: #2F6B9A; }
+        .branch-header-b { color: #32734A; }
+        .branch-step { display: flex; align-items: flex-start; gap: 1.5mm; margin: 1mm 0; font-size: 6pt; }
+        .branch-arrow { color: #2F6B9A; font-weight: bold; flex-shrink: 0; margin-top: 0.5mm; }
+        .branch-label { font-weight: 600; color: #566575; font-size: 5pt; }
+        .branch-detail { font-family: 'JetBrains Mono', monospace; font-size: 5pt; color: #202B36; margin-top: 0.3mm; }
+        /* Questions & Answers */
+        .qa-section { margin-top: 3mm; }
+        .qa-item { margin-bottom: 4mm; page-break-inside: avoid; }
+        .qa-question {
+            background: #17324D;
+            color: white;
+            padding: 2mm 3mm;
+            border-radius: 3px;
+            font-weight: 600;
+            font-size: 7.5pt;
+            margin-bottom: 1.5mm;
+        }
+        .qa-answer {
+            background: #FAFBFC;
+            border: 1px solid #E0E6ED;
+            border-radius: 3px;
+            padding: 2.5mm;
+            font-size: 6.5pt;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        .qa-answer strong { color: #17324D; }
+        /* Footer */
+        footer.page-footer {
+            margin-top: 5mm;
+            padding-top: 2.5mm;
+            border-top: 1px solid #E0E6ED;
+            text-align: center;
+            font-size: 5.5pt;
+            color: #566575;
+        }
+        .no-print { text-align: center; padding: 4mm; }
+        .btn-print {
+            background: #2F6B9A; color: white; border: none;
+            padding: 10px 24px; border-radius: 4px;
+            font-size: 10pt; font-weight: 600; cursor: pointer;
+        }
+        .btn-print:hover { background: #17324D; }
+        @media (max-width: 800px) {
+            .page { width: 100%; min-height: auto; margin: 4mm auto; padding: 12mm 4mm; }
+            .parallel-branches { grid-template-columns: 1fr; }
+            .uml-diagram { font-size: 5.5pt; }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar como PDF</button>
+    </div>
+
+    <!-- ==================== FOLHA 1: DIAGRAMA UML ==================== -->
+    <div class="page">
+        <header class="page-header">
+            <h1>Diagrama de Classes (UML) — Sistema de Biblioteca</h1>
+            <div class="subtitle">Atividade Prática: Orientação a Objetos e Programação Funcional</div>
+            <div class="name-line">Nome: <input type="text" placeholder="Escreva seu nome completo à mão após imprimir" readonly></div>
+        </header>
+
+        <span class="page-badge">Folha 1 — A4 Paisagem</span>
+
+        <div class="uml-diagram">┌────────────────────────────┐         ┌────────────────────────────────────┐         ┌────────────────────────────┐
+│           Livro            │         │           Biblioteca               │         │           Usuario          │
+├────────────────────────────┤         ├────────────────────────────────────┤         ├────────────────────────────┤
+│ - identificador: String    │         │ - livros: Map<String, Livro>       │         │ - identificador: String    │
+│ - titulo: String           │         │ - usuarios: Map<String, Usuario>   │         │ - nome: String             │
+│ - autor: String            │         │ - emprestimos: Map<String,Emprest.>│         │ - matricula: String        │
+│ - categoria: String        │         ├────────────────────────────────────┤         └────────────────────────────┘
+└───────────────┬────────────┘         │ + adicionarLivro(livro)            │                    ▲
+                │ 1 ────────── 0..*     │ + cadastrarUsuario(usuario)       │                    │ 1 ────────── 0..*
+                │    «contém»           │ + consultarLivro(id)              │                    │    «contém»
+                │                       │ + consultarUsuario(id)            │                    │
+                │                       │ + consultarEmprestimos()          │                    │
+                │                       │ + emprestar(idEmp,idLiv,idUsu,    │                    │
+                │                       │       dtEmp,dtPrev)               │                    │
+                │                       │ + devolver(idEmp, dataDev)        │                    │
+                │                       │ + obterDados(): DadosBiblioteca   │                    │
+                │                       └───────────────┬───────────────────┘                    │
+                │                                       │ 1 ────────── 0..*                      │
+                │                                       │    «histórico»                         │
+                │                                       ▼                                      │
+                │                        ┌────────────────────────────────────┐                 │
+                │                        │           Emprestimo               │                 │
+                │                        ├────────────────────────────────────┤                 │
+                │                        │ - identificador: String            │                 │
+                │                        │ - livro: Livro                     │◄── 0..* ── 1     │
+                │                        │ - usuario: Usuario                 │    «refere-se a» │
+                │                        │ - dataEmprestimo: LocalDate        │                 │
+                │                        │ - dataPrevistaDevolucao: LocalDate │                 │
+                │                        │ - dataDevolucao: LocalDate (vazio) │                 │
+                │                        ├────────────────────────────────────┤                 │
+                │                        │ + isAtivo(): boolean               │                 │
+                │                        │ + isAtrasado(ref): boolean         │                 │
+                │                        │ + diasAtraso(ref): long            │                 │
+                │                        │ + devolver(data): Emprestimo       │                 │
+                │                        └───────────────┬────────────────────┘                 │
+                │                                        │ 0..* ── 1                            │
+                │                                        │    «pertence a»                      │
+                │                                        ▼                                      │
+                │                        ┌────────────────────────────────────┐                 │
+                │                        │           Relatorios               │                 │
+                │                        ├────────────────────────────────────┤                 │
+                │                        │ + filtrarLivrosPorCategoria(...)   │                 │
+                │                        │ + calcularMulta(dias, valor)       │                 │
+                │                        │ + emprestimosAtrasados(...)        │                 │
+                │                        │ + emprestimosAtrasadosImperativo() │                 │
+                │                        │ + relatorioMultas(emps, ref)       │                 │
+                │                        │ + totalMultas(emps, ref)           │                 │
+                │                        │ + estatisticas(livros, emps, ref)  │                 │
+                │                        └───────────────┬────────────────────┘                 │
+                │                                        │ «usa»                                │
+                │                                        ▼                                      │
+                │                        ┌────────────────────────────────────┐                 │
+                │                        │       Tipos de Retorno             │                 │
+                │                        ├────────────────────────────────────┤                 │
+                │                        │ DadosBiblioteca                    │                 │
+                │                        │   - livros: List<Livro>            │                 │
+                │                        │   - usuarios: List<Usuario>        │                 │
+                │                        │   - emprestimos: List<Emprestimo>  │                 │
+                │                        │                                    │                 │
+                │                        │ Multa                              │                 │
+                │                        │   - idEmprestimo: String           │                 │
+                │                        │   - tituloLivro: String            │                 │
+                │                        │   - nomeUsuario: String            │                 │
+                │                        │   - diasAtraso: long               │                 │
+                │                        │   - valor: BigDecimal              │                 │
+                │                        │                                    │                 │
+                │                        │ RelatorioMultas                    │                 │
+                │                        │   - multas: List<Multa>            │                 │
+                │                        │   - total: BigDecimal              │                 │
+                │                        │                                    │                 │
+                │                        │ Estatisticas                       │                 │
+                │                        │   - livrosPorCategoria: Map        │                 │
+                │                        │   - emprestimosPorUsuario: Map     │                 │
+                │                        │   - emprestimosAtivos: long        │                 │
+                │                        │   - emprestimosAtrasados: long     │                 │
+                │                        │   - totalMultas: BigDecimal        │                 │
+                │                        └────────────────────────────────────┘                 │
+                │                                                                              │
+                └──────────────────────────────────────────────────────────────────────────────┘
+
+Regra de negócio: Livro ────── 0..1 Emprestimo (ativo)  →  "Máx. 1 empréstimo ativo por livro"</div>
+
+        <footer class="page-footer">
+            Marlon Rufino do Nascimento — RGM 35879718 | Linguagens de Programação | Java 8+
+        </footer>
+    </div>
+
+    <!-- ==================== FOLHA 2: FLUXO FUNCIONAL ==================== -->
+    <div class="page">
+        <header class="page-header">
+            <h1>Fluxo de Processamento Funcional — Relatório de Multas</h1>
+            <div class="subtitle">Pipeline: filter → filter → map → reduce | Programação Funcional</div>
+            <div class="name-line">Nome: <input type="text" placeholder="Escreva seu nome completo à mão após imprimir" readonly></div>
+        </header>
+
+        <span class="page-badge">Folha 2 — A4 Retrato</span>
+
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">BIBLIOTECA.OBTERDADOS()</div>
+                    <span class="step-tag tag-impure">Impura</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Entrada:</span><span class="step-field-value">Estado interno da Biblioteca (mapas privados)</span></div>
+                <div class="step-field"><span class="step-field-label">Saída:</span><span class="step-field-value">DadosBiblioteca (cópias não modificáveis)</span></div>
+                <div class="step-field"><span class="step-field-label">Operação:</span><span class="step-field-value">Leitura de estado (não altera)</span></div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">ENTRADA DO RELATÓRIO</div>
+                    <span class="step-tag tag-data">Dados</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Dados:</span><span class="step-field-value">List<Emprestimo> + LocalDate dataReferencia</span></div>
+                <div class="step-field"><span class="step-field-label">Saída:</span><span class="step-field-value">Mesmos dados repassados</span></div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">FILTER — EMPRÉSTIMOS ATIVOS</div>
+                    <span class="step-tag tag-pure">Pura</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Entrada:</span><span class="step-field-value">Lista de empréstimos</span></div>
+                <div class="step-field"><span class="step-field-label">Saída:</span><span class="step-field-value">Apenas empréstimos com dataDevolucao == null</span></div>
+                <div class="step-field"><span class="step-field-label">Operação:</span><span class="step-field-value">filter(Emprestimo::isAtivo)</span></div>
+                <div class="step-field"><span class="step-field-label">Imutável:</span><span class="step-field-value">Entrada inalterada, nova lista criada</span></div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">FILTER — ATRASADOS NA DATA REF.</div>
+                    <span class="step-tag tag-pure">Pura</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Entrada:</span><span class="step-field-value">Empréstimos ativos + data de referência</span></div>
+                <div class="step-field"><span class="step-field-label">Saída:</span><span class="step-field-value">Empréstimos com dataPrevista < dataReferencia</span></div>
+                <div class="step-field"><span class="step-field-label">Operação:</span><span class="step-field-value">filter(e -> e.isAtrasado(dataReferencia))</span></div>
+                <div class="step-field"><span class="step-field-label">Imutável:</span><span class="step-field-value">Entrada inalterada, nova lista criada</span></div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">5</div>
+                    <div class="step-title">MAP — CALCULAR MULTA INDIVIDUAL</div>
+                    <span class="step-tag tag-pure">Pura</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Entrada:</span><span class="step-field-value">Cada empréstimo atrasado + data ref.</span></div>
+                <div class="step-field"><span class="step-field-label">Transformação:</span><span class="step-field-value">dias = emp.diasAtraso(ref) | valor = dias × R$ 2,00 | cria Multa</span></div>
+                <div class="step-field"><span class="step-field-label">Operação:</span><span class="step-field-value">map</span></div>
+                <div class="step-field"><span class="step-field-label">Função pura:</span><span class="step-field-value">calcularMulta(dias, MULTA_DIARIA)</span></div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">6</div>
+                    <div class="step-title">REDUCE — SOMAR MULTAS (TOTAL)</div>
+                    <span class="step-tag tag-pure">Pura</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Entrada:</span><span class="step-field-value">Lista de Multa + acumulador BigDecimal.ZERO</span></div>
+                <div class="step-field"><span class="step-field-label">Saída:</span><span class="step-field-value">RelatorioMultas (lista multas + total agregado)</span></div>
+                <div class="step-field"><span class="step-field-label">Operação:</span><span class="step-field-value">reduce(BigDecimal::add)</span></div>
+                <div class="step-field"><span class="step-field-label">Imutável:</span><span class="step-field-value">Nada modificado</span></div>
+            </div>
+
+            <div class="flow-step">
+                <div class="flow-step-header">
+                    <div class="step-number">7</div>
+                    <div class="step-title">EXIBIÇÃO NO CONSOLE (Main)</div>
+                    <span class="step-tag tag-impure">Impura</span>
+                </div>
+                <div class="step-field"><span class="step-field-label">Entrada:</span><span class="step-field-value">RelatorioMultas (multas + total)</span></div>
+                <div class="step-field"><span class="step-field-label">Saída:</span><span class="step-field-value">Impressão formatada no stdout</span></div>
+                <div class="step-field"><span class="step-field-label">Operação:</span><span class="step-field-value">System.out.println (efeito colateral I/O)</span></div>
+            </div>
+        </div>
+
+        <div class="parallel-branches">
+            <div class="branch-card branch-card-a">
+                <div class="branch-header branch-header-a">RAMO A: FILTRO LIVROS POR CATEGORIA</div>
+                <div class="branch-step"><span class="branch-arrow">▶</span><div class="branch-content"><div class="branch-label">Entrada</div><div class="branch-detail">List<Livro> + String categoria</div></div></div>
+                <div class="branch-step"><span class="branch-arrow">↓</span><div class="branch-content"><div class="branch-label">filter</div><div class="branch-detail">l -> l.getCategoria().equalsIgnoreCase(cat)</div></div></div>
+                <div class="branch-step"><span class="branch-arrow">▶</span><div class="branch-content"><div class="branch-label">Saída</div><div class="branch-detail">Nova List<Livro> só da categoria | PURA</div></div></div>
+            </div>
+
+            <div class="branch-card branch-card-b">
+                <div class="branch-header branch-header-b">RAMO B: ESTATÍSTICA COM REDUCE (Ativos)</div>
+                <div class="branch-step"><span class="branch-arrow">▶</span><div class="branch-content"><div class="branch-label">Entrada</div><div class="branch-detail">List<Emprestimo></div></div></div>
+                <div class="branch-step"><span class="branch-arrow">↓</span><div class="branch-content"><div class="branch-label">filter (ativos)</div><div class="branch-detail">Emprestimo::isAtivo | PURA</div></div></div>
+                <div class="branch-step"><span class="branch-arrow">↓</span><div class="branch-content"><div class="branch-label">map (1L cada)</div><div class="branch-detail">e -> 1L | PURA</div></div></div>
+                <div class="branch-step"><span class="branch-arrow">↓</span><div class="branch-content"><div class="branch-label">reduce (soma)</div><div class="branch-detail">reduce(0L, Long::sum) | PURA → long</div></div></div>
+            </div>
+        </div>
+
+        <footer class="page-footer">
+            Marlon Rufino do Nascimento — RGM 35879718 | Linguagens de Programação | Java 8+
+        </footer>
+    </div>
+
+    <!-- ==================== FOLHA 3: QUESTÕES A, B, C ==================== -->
+    <div class="page">
+        <header class="page-header">
+            <h1>Questões para Análise — A, B, C</h1>
+            <div class="subtitle">Respostas manuscritas individuais | Papel A4 branco sem pauta</div>
+            <div class="name-line">Nome: <input type="text" placeholder="Escreva seu nome completo à mão após imprimir" readonly></div>
+        </header>
+
+        <span class="page-badge">Folha 3 — A4 Retrato</span>
+
+        <div class="qa-section">
+            <div class="qa-item">
+                <div class="qa-question">A) Escolha uma função pura implementada e explique por que possui transparência referencial.</div>
+                <div class="qa-answer">A função Relatorios.calcularMulta(diasAtraso, multaDiaria) é pura porque:
+• Recebe parâmetros (long, BigDecimal) e retorna BigDecimal (multiplicação)
+• Mesmas entradas SEMPRE produzem a mesma saída (ex.: 3 dias × R$ 2,00 = R$ 6,00)
+• NÃO altera objetos, listas, nem estado da biblioteca
+• NÃO tem efeitos colaterais (não escreve, não imprime, não modifica estado global)
+
+Por isso possui TRANSPARÊNCIA REFERENCIAL: a chamada pode ser substituída pelo valor retornado (6.00) sem alterar o comportamento do programa.</div>
+            </div>
+
+            <div class="qa-item">
+                <div class="qa-question">B) Identifique uma operação impura e explique por que não é uma função pura.</div>
+                <div class="qa-answer">Biblioteca.emprestar(idEmp, idLiv, idUsu, dtEmp, dtPrev) é IMPURA porque:
+1. ALTERA o estado da biblioteca: insere novo Emprestimo no mapa 'emprestimos'
+2. Resultado DEPENDE do estado atual: se livro já tem empréstimo ativo → exceção; se não tem → sucesso. Mesma entrada, resultados diferentes conforme estado.
+3. Tem EFEITO COLATERAL visível externamente (o mapa interno muda)
+4. Não é determinística apenas pelos argumentos → não é função pura.</div>
+            </div>
+
+            <div class="qa-item">
+                <div class="qa-question">C) Explique como a imutabilidade foi aplicada e quais problemas ajuda a evitar.</div>
+                <div class="qa-answer">COMO FOI APLICADA:
+• Livro, Usuario, Emprestimo: todos atributos private final (imutáveis após construção)
+• Emprestimo.devolver(data): NÃO modifica o objeto; CRIA e RETORNA novo Emprestimo com dataDevolucao preenchida (padrão imutável)
+• Biblioteca.obterDados(): retorna DadosBiblioteca com listas unmodifiableList
+• Relatorios: todas funções retornam novas coleções/cópias; NUNCA alteram entradas
+
+PROBLEMAS QUE EVITA:
+• Efeitos colaterais acidentais: consulta não corrompe estado da biblioteca
+• Bugs de concorrência: objetos imutáveis são thread-safe por natureza
+• Aliasing inesperado: passar lista para função não permite modificação
+• Dificuldade de raciocínio: código puro é mais fácil testar, depurar, manter
+• Violação de encapsulamento: estado interno da Biblioteca não vaza mutável</div>
+            </div>
+        </div>
+
+        <footer class="page-footer">
+            Marlon Rufino do Nascimento — RGM 35879718 | Linguagens de Programação | Java 8+
+        </footer>
+    </div>
+
+    <!-- ==================== FOLHA 4: QUESTÕES D, E ==================== -->
+    <div class="page">
+        <header class="page-header">
+            <h1>Questões para Análise — D, E</h1>
+            <div class="subtitle">Respostas manuscritas individuais | Papel A4 branco sem pauta</div>
+            <div class="name-line">Nome: <input type="text" placeholder="Escreva seu nome completo à mão após imprimir" readonly></div>
+        </header>
+
+        <span class="page-badge">Folha 4 — A4 Retrato</span>
+
+        <div class="qa-section">
+            <div class="qa-item">
+                <div class="qa-question">D) Compare as versões imperativa e funcional quanto à legibilidade, manutenção, imutabilidade e efeitos colaterais.</div>
+                <div class="qa-answer">Funcionalidade comparada: emprestimosAtrasados (funcional) vs emprestimosAtrasadosImperativo (imperativa)
+
+| Critério        | Funcional (filter)              | Imperativa (for + if)        |
+|-----------------|---------------------------------|------------------------------|
+| Legibilidade    | Expressa O QUÊ (critério)       | Expressa COMO (passos)       |
+| Manutenção      | Fácil encadear .filter()/.map() | Edita corpo do laço          |
+| Imutabilidade   | Garantida (stream + collect)    | Neste projeto cria lista nova|
+| Efeitos colat.  | Nenhum (pipeline puro)          | Permite mutação acidental    |
+| Composição      | Natural (saída → entrada)       | Variáveis intermediárias     |
+
+VERIFICAÇÃO NO MAIN: identificadores(funcional).equals(identificadores(imperativo)) → TRUE</div>
+            </div>
+
+            <div class="qa-item">
+                <div class="qa-question">E) Se dois usuários tentarem emprestar simultaneamente o mesmo livro, qual problema pode ocorrer? Funções puras e imutabilidade bastam para evitá-lo? Justifique.</div>
+                <div class="qa-answer">PROBLEMA: Race Condition (condição de corrida).
+
+Cenário: Thread A e Thread B chamam emprestar("E1", "L1", ...) quase junto:
+1. Thread A verifica: livroEmprestado = false (livre)
+2. Thread B verifica: livroEmprestado = false (Ainda livre — A não registrou)
+3. Thread A registra empréstimo E1
+4. Thread B registra empréstimo E2
+5. RESULTADO: DOIS empréstimos ativos para o mesmo livro → VIOLA REGRA DE NEGÓCIO
+
+FUNÇÕES PURAS E IMUTABILIDADE NÃO BASTAM para evitar:
+• Funções puras não têm efeitos colaterais, mas NÃO coordenam escritas concorrentes
+• Imutabilidade protege LEITURAS, mas o estado mutável da Biblioteca (mapa emprestimos) precisa de sincronização na ESCRITA
+• O problema é de SINCRONIZAÇÃO DE ESTADO COMPARTILHADO, não de pureza
+
+SOLUÇÃO IMPLEMENTADA: Biblioteca.emprestar(...) é synchronized → verificação de disponibilidade + registro no mapa ocorrem ATOMICAMENTE.
+Teste em Main.verificarConcorrencia(): 2 threads tentam → EXATAMENTE 1 é aceita.</div>
+            </div>
+        </div>
+
+        <footer class="page-footer">
+            Marlon Rufino do Nascimento — RGM 35879718 | Linguagens de Programação | Java 8+
+        </footer>
+    </div>
+
+    <script>
+        window.addEventListener('beforeprint', () => {
+            document.querySelectorAll('.name-line input').forEach(el => {
+                el.style.border = 'none';
+                el.style.background = 'transparent';
+            });
+        });
+    </script>
+</body>
+</html>
